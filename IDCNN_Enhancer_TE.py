@@ -4,12 +4,15 @@ import tensorflow as tf
 from Bio import SeqIO
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.utils import class_weight
+from sklearn.metrics import roc_auc_score, confusion_matrix, roc_curve
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.layers import Conv1D, MaxPooling1D, Dense, Dropout, GlobalMaxPooling1D, Masking, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Sequential, load_model, Model
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from kerastuner.tuners import RandomSearch
 import random
+import matplotlib.pyplot as plt
 
 # One-hot encoding function
 def one_hot_encode(sequence):
@@ -135,17 +138,7 @@ for train, test in kfold.split(X, y):
 
 print("Average accuracy: ", np.mean(scores))
 
-# Hyperparameter Tuning
-from kerastuner.tuners import RandomSearch
-
-# ... [Your build_tuned_model function goes here] ...
-
-tuner = RandomSearch(
-    build_tuned_model,
-    objective='val_accuracy',
-    max_trials=10,
-    directory='tuner_results',
-    project_name='baseline_tuning'
-)
-
-tuner.search(train_gen, validation_data=val_gen, epochs=20)
+# Function to build the model with tunable hyperparameters
+def build_tuned_model(hp):
+    hp_units = hp.Int('units', min_value=32, max_value=512, step=32)
+    hp_dropout = hp.Float('dropout', min_value=0.0, max_value
