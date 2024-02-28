@@ -1,4 +1,6 @@
 # human-transposons-enhancer-predicition
+This model was tested on Google Colab Pro with A100 GPU
+
 Transposable elements (TEs) are mobile genetic elements that constitute a significant portion of the human genome. Once considered "junk DNA," TEs are now recognized as key players in genome evolution and function. One of the most intriguing roles of TEs is their contribution to the regulatory landscape of the genome, particularly as enhancers. Enhancers are short DNA sequences that increase the transcription of genes, playing a crucial role in the spatial and temporal regulation of gene expression.
 
 TE-derived enhancers have been implicated in a variety of biological processes, from embryonic development to the adaptive immune response. They have also been linked to disease when their regulatory functions are dysregulated. Despite their importance, our understanding of TE-derived enhancers is still in its infancy. This is partly due to the sheer diversity and abundance of TEs in the human genome, as well as their complex interactions with the surrounding genomic landscape.
