@@ -16,15 +16,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Load model function
 @st.cache_resource
 def load_model():
     """Load the pre-trained enhancer detection model"""
     try:
-        model = tf.keras.models.load_model('model.h5')
+        model = tf.keras.models.load_model('best_model.h5')
         return model
     except:
-        st.error("Model file 'model.h5' not found. Please ensure the model is in the app directory.")
+        st.error("Model file 'best_model.h5' not found. Please ensure the model is in the app directory.")
         return None
 
 # One-hot encoding function
