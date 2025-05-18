@@ -78,6 +78,13 @@ def main():
     st.title("🧬 DNA Enhancer Detection Tool")
     st.markdown("---")
     
+    # Warning about model limitations
+    st.warning("""
+    ⚠️ **Model Limitation**: This model tends to be very sensitive and may classify 
+    many sequences as enhancers. Please use these predictions as a screening tool 
+    and validate with experimental methods.
+    """)
+    
     # Sidebar
     st.sidebar.header("About This Tool")
     st.sidebar.info(
@@ -97,6 +104,13 @@ def main():
         4. Download results as CSV
         """
     )
+    
+    # Performance warning in sidebar
+    st.sidebar.warning("""
+    **Model Performance Note**: 
+    This model was trained primarily on enhancer sequences and may have 
+    high false positive rates. Use predictions cautiously.
+    """)
     
     # Load model
     model = load_model()
@@ -166,24 +180,24 @@ def main():
                 # Make predictions
                 predictions = predict_enhancers(model, sequences, MAX_LENGTH)
                 
-                # Create results dataframe
+                # Create results dataframe with adjusted threshold
                 results_df = pd.DataFrame({
                     'Sequence_ID': sequence_ids,
                     'Sequence_Length': [len(seq) for seq in sequences],
                     'Enhancer_Probability': predictions,
-                    'Prediction': ['Enhancer' if p > 0.5 else 'Non-enhancer' for p in predictions],
+                    'Prediction': ['Enhancer' if p > 0.9 else 'Non-enhancer' for p in predictions],
                     'Confidence': ['High' if abs(p - 0.5) > 0.3 else 'Medium' if abs(p - 0.5) > 0.1 else 'Low' for p in predictions]
                 })
                 
                 # Display results
                 st.header("📊 Results")
                 
-                # Summary statistics
+                # Summary statistics with adjusted threshold
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Total sequences", len(results_df))
                 with col2:
-                    predicted_enhancers = (results_df['Enhancer_Probability'] > 0.5).sum()
+                    predicted_enhancers = (results_df['Enhancer_Probability'] > 0.9).sum()
                     st.metric("Predicted enhancers", predicted_enhancers)
                 with col3:
                     st.metric("Average probability", f"{results_df['Enhancer_Probability'].mean():.3f}")
@@ -195,10 +209,10 @@ def main():
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    # Probability distribution
+                    # Probability distribution with adjusted threshold line
                     fig, ax = plt.subplots(figsize=(8, 6))
                     ax.hist(results_df['Enhancer_Probability'], bins=20, alpha=0.7, edgecolor='black')
-                    ax.axvline(x=0.5, color='red', linestyle='--', label='Decision threshold')
+                    ax.axvline(x=0.9, color='red', linestyle='--', label='Decision threshold (0.9)')
                     ax.set_xlabel('Enhancer Probability')
                     ax.set_ylabel('Number of Sequences')
                     ax.set_title('Distribution of Enhancer Probabilities')
