@@ -19,12 +19,31 @@ st.set_page_config(
 @st.cache_resource
 def load_model():
     """Load the pre-trained enhancer detection model"""
-    try:
-        model = tf.keras.models.load_model('best_model.h5')
-        return model
-    except:
-        st.error("Model file 'best_model.h5' not found. Please ensure the model is in the app directory.")
-        return None
+    import os
+    
+    # Try different possible paths
+    possible_paths = [
+        'best_model.h5',
+        './best_model.h5',
+        '/app/best_model.h5'
+    ]
+    
+    st.write("Current working directory:", os.getcwd())
+    st.write("Files in current directory:", os.listdir('.'))
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            st.write(f"✅ Found model at: {path}")
+            try:
+                model = tf.keras.models.load_model(path)
+                st.success("✅ Model loaded successfully!")
+                return model
+            except Exception as e:
+                st.error(f"❌ Error loading model from {path}: {str(e)}")
+                continue
+    
+    st.error("❌ Model file not found in any expected location.")
+    return None
 
 # One-hot encoding function
 def one_hot_encode(sequence):
