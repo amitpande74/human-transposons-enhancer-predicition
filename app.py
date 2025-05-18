@@ -73,16 +73,30 @@ def parse_fasta_content(content):
         st.error(f"Error parsing FASTA file: {str(e)}")
         return [], []
 
+def classify_enhancer_strength(probability):
+    """Classify enhancer strength based on probability"""
+    if probability >= 0.999:
+        return "Very Strong"
+    elif probability >= 0.99:
+        return "Strong"
+    elif probability >= 0.95:
+        return "Moderate"
+    elif probability >= 0.9:
+        return "Weak"
+    else:
+        return "Very Weak"
+
 # Main app
 def main():
     st.title("🧬 DNA Enhancer Detection Tool")
     st.markdown("---")
     
-    # Warning about model limitations
-    st.warning("""
-    ⚠️ **Model Limitation**: This model tends to be very sensitive and may classify 
-    many sequences as enhancers. Please use these predictions as a screening tool 
-    and validate with experimental methods.
+    # Critical warning about model limitations
+    st.error("""
+    🚨 **Critical Model Limitation**: 
+    This model currently predicts most sequences as enhancers, including clear negative controls.
+    Results should NOT be used for scientific conclusions without experimental validation.
+    This tool is for demonstration and screening purposes only.
     """)
     
     # Sidebar
@@ -101,15 +115,18 @@ def main():
         1. Choose input method (upload file or paste text)
         2. Provide DNA sequences in FASTA format
         3. Click 'Predict Enhancers' to get results
-        4. Download results as CSV
+        4. Interpret results with caution (see limitations)
+        5. Download results as CSV
         """
     )
     
-    # Performance warning in sidebar
-    st.sidebar.warning("""
-    **Model Performance Note**: 
-    This model was trained primarily on enhancer sequences and may have 
-    high false positive rates. Use predictions cautiously.
+    # Enhanced performance warning in sidebar
+    st.sidebar.error("""
+    **Known Model Issues**: 
+    • High false positive rate
+    • Predicts most sequences as enhancers
+    • Trained on imbalanced dataset
+    • Requires experimental validation
     """)
     
     # Load model
@@ -180,69 +197,99 @@ def main():
                 # Make predictions
                 predictions = predict_enhancers(model, sequences, MAX_LENGTH)
                 
-                # Create results dataframe with adjusted threshold
+                # Create results dataframe with multiple classification schemes
                 results_df = pd.DataFrame({
                     'Sequence_ID': sequence_ids,
                     'Sequence_Length': [len(seq) for seq in sequences],
                     'Enhancer_Probability': predictions,
-                    'Prediction': ['Enhancer' if p > 0.9 else 'Non-enhancer' for p in predictions],
+                    'Binary_Prediction_999': ['Enhancer' if p > 0.999 else 'Non-enhancer' for p in predictions],
+                    'Binary_Prediction_99': ['Enhancer' if p > 0.99 else 'Non-enhancer' for p in predictions],
+                    'Binary_Prediction_95': ['Enhancer' if p > 0.95 else 'Non-enhancer' for p in predictions],
+                    'Enhancer_Strength': [classify_enhancer_strength(p) for p in predictions],
                     'Confidence': ['High' if abs(p - 0.5) > 0.3 else 'Medium' if abs(p - 0.5) > 0.1 else 'Low' for p in predictions]
                 })
+                
+                # Interpretation guide
+                st.info("""
+                💡 **How to Interpret Results**: 
+                Due to model limitations, focus on **relative differences** between sequences:
+                • **Very Strong** (≥0.999): Highest model confidence
+                • **Strong** (≥0.99): High model confidence  
+                • **Moderate** (≥0.95): Moderate confidence
+                • **Weak** (≥0.9): Lower confidence
+                • **Very Weak** (<0.9): Lowest confidence (rare with this model)
+                
+                🔬 **Important**: All predictions require experimental validation.
+                """)
                 
                 # Display results
                 st.header("📊 Results")
                 
-                # Summary statistics with adjusted threshold
+                # Summary statistics with multiple thresholds
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Total sequences", len(results_df))
                 with col2:
-                    predicted_enhancers = (results_df['Enhancer_Probability'] > 0.9).sum()
-                    st.metric("Predicted enhancers", predicted_enhancers)
+                    enhancers_999 = (results_df['Enhancer_Probability'] > 0.999).sum()
+                    st.metric("Very Strong (>0.999)", enhancers_999)
                 with col3:
-                    st.metric("Average probability", f"{results_df['Enhancer_Probability'].mean():.3f}")
+                    enhancers_99 = (results_df['Enhancer_Probability'] > 0.99).sum()
+                    st.metric("Strong+ (>0.99)", enhancers_99)
                 with col4:
-                    high_confidence = (results_df['Confidence'] == 'High').sum()
-                    st.metric("High confidence predictions", high_confidence)
+                    st.metric("Average probability", f"{results_df['Enhancer_Probability'].mean():.3f}")
                 
-                # Visualization
+                # Enhanced visualization
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    # Probability distribution with adjusted threshold line
-                    fig, ax = plt.subplots(figsize=(8, 6))
+                    # Probability distribution with multiple threshold lines
+                    fig, ax = plt.subplots(figsize=(10, 6))
                     ax.hist(results_df['Enhancer_Probability'], bins=20, alpha=0.7, edgecolor='black')
-                    ax.axvline(x=0.9, color='red', linestyle='--', label='Decision threshold (0.9)')
+                    ax.axvline(x=0.999, color='red', linestyle='--', label='Very Strong (0.999)', linewidth=2)
+                    ax.axvline(x=0.99, color='orange', linestyle='--', label='Strong (0.99)', linewidth=2)
+                    ax.axvline(x=0.95, color='yellow', linestyle='--', label='Moderate (0.95)', linewidth=2)
+                    ax.axvline(x=0.9, color='green', linestyle='--', label='Weak (0.9)', linewidth=2)
                     ax.set_xlabel('Enhancer Probability')
                     ax.set_ylabel('Number of Sequences')
                     ax.set_title('Distribution of Enhancer Probabilities')
                     ax.legend()
+                    plt.tight_layout()
                     st.pyplot(fig)
                 
                 with col2:
-                    # Prediction counts
-                    fig, ax = plt.subplots(figsize=(8, 6))
-                    prediction_counts = results_df['Prediction'].value_counts()
-                    colors = ['#ff7f0e' if pred == 'Enhancer' else '#1f77b4' for pred in prediction_counts.index]
-                    ax.bar(prediction_counts.index, prediction_counts.values, color=colors)
+                    # Enhancer strength distribution
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    strength_counts = results_df['Enhancer_Strength'].value_counts()
+                    colors = {'Very Strong': '#d62728', 'Strong': '#ff7f0e', 'Moderate': '#ffbb78', 
+                             'Weak': '#2ca02c', 'Very Weak': '#98df8a'}
+                    bar_colors = [colors.get(strength, '#1f77b4') for strength in strength_counts.index]
+                    ax.bar(strength_counts.index, strength_counts.values, color=bar_colors)
                     ax.set_ylabel('Number of Sequences')
-                    ax.set_title('Prediction Summary')
-                    for i, v in enumerate(prediction_counts.values):
-                        ax.text(i, v + 0.5, str(v), ha='center', va='bottom')
+                    ax.set_title('Enhancer Strength Classification')
+                    ax.tick_params(axis='x', rotation=45)
+                    for i, v in enumerate(strength_counts.values):
+                        ax.text(i, v + 0.1, str(v), ha='center', va='bottom')
+                    plt.tight_layout()
                     st.pyplot(fig)
                 
-                # Results table
+                # Results table with enhanced information
                 st.subheader("Detailed Results")
                 
-                # Filter options
-                col1, col2 = st.columns(2)
+                # Display option for different classification schemes
+                col1, col2, col3 = st.columns(3)
                 with col1:
-                    show_only = st.selectbox(
-                        "Filter results:",
-                        ["All", "Enhancers only", "Non-enhancers only", "High confidence only"]
+                    classification_scheme = st.selectbox(
+                        "Classification scheme:",
+                        ["Enhancer_Strength", "Binary_Prediction_999", "Binary_Prediction_99", "Binary_Prediction_95"]
                     )
                 
                 with col2:
+                    show_only = st.selectbox(
+                        "Filter results:",
+                        ["All", "Very Strong only", "Strong+ only", "Moderate+ only"]
+                    )
+                
+                with col3:
                     sort_by = st.selectbox(
                         "Sort by:",
                         ["Enhancer_Probability", "Sequence_ID", "Sequence_Length"],
@@ -251,32 +298,46 @@ def main():
                 
                 # Apply filters
                 filtered_df = results_df.copy()
-                if show_only == "Enhancers only":
-                    filtered_df = filtered_df[filtered_df['Prediction'] == 'Enhancer']
-                elif show_only == "Non-enhancers only":
-                    filtered_df = filtered_df[filtered_df['Prediction'] == 'Non-enhancer']
-                elif show_only == "High confidence only":
-                    filtered_df = filtered_df[filtered_df['Confidence'] == 'High']
+                if show_only == "Very Strong only":
+                    filtered_df = filtered_df[filtered_df['Enhancer_Strength'] == 'Very Strong']
+                elif show_only == "Strong+ only":
+                    filtered_df = filtered_df[filtered_df['Enhancer_Probability'] > 0.99]
+                elif show_only == "Moderate+ only":
+                    filtered_df = filtered_df[filtered_df['Enhancer_Probability'] > 0.95]
                 
                 # Sort results
                 ascending = True if sort_by != "Enhancer_Probability" else False
                 filtered_df = filtered_df.sort_values(sort_by, ascending=ascending)
                 
+                # Select columns to display
+                display_cols = ['Sequence_ID', 'Sequence_Length', 'Enhancer_Probability', 
+                               classification_scheme, 'Enhancer_Strength']
+                
                 # Display table
                 st.dataframe(
-                    filtered_df,
+                    filtered_df[display_cols],
                     use_container_width=True,
                     hide_index=True
                 )
                 
-                # Download button
+                # Download button with enhanced results
                 csv = results_df.to_csv(index=False)
                 st.download_button(
                     label="📥 Download Results as CSV",
                     data=csv,
-                    file_name="enhancer_predictions.csv",
+                    file_name="enhancer_predictions_detailed.csv",
                     mime="text/csv"
                 )
+                
+                # Additional interpretation notes
+                st.markdown("---")
+                st.markdown("""
+                ### 📋 Usage Notes:
+                - **Relative ranking** is more meaningful than absolute scores
+                - Sequences with probability differences < 0.01 should be considered similar
+                - **Always validate** predictions experimentally
+                - Consider this tool as a **first-pass screening** method only
+                """)
                 
             except Exception as e:
                 st.error(f"Error during prediction: {str(e)}")
