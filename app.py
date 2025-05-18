@@ -24,7 +24,7 @@ def load_model():
         model = tf.keras.models.load_model('model.h5')
         return model
     except:
-        st.error("Model file 'best_model.h5' not found. Please ensure the model is in the app directory.")
+        st.error("Model file 'model.h5' not found. Please ensure the model is in the app directory.")
         return None
 
 # One-hot encoding function
