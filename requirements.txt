@@ -1,7 +1,8 @@
+streamlit
 numpy
 tensorflow
 biopython
 scikit-learn
 matplotlib
-keras-tuner
-
+pandas
+seaborn
