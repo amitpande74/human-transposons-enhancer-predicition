@@ -21,7 +21,7 @@ st.set_page_config(
 def load_model():
     """Load the pre-trained enhancer detection model"""
     try:
-        model = tf.keras.models.load_model('best_model.h5')
+        model = tf.keras.models.load_model('model.h5')
         return model
     except:
         st.error("Model file 'best_model.h5' not found. Please ensure the model is in the app directory.")
